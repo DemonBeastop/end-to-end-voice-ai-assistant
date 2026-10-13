@@ -23,16 +23,6 @@ It also has a **Scenario** dropdown that turns it into a dental clinic reception
 
 No hosted AI APIs are used. After the first model download, everything runs offline.
 
-## Deliverables
-
-| Deliverable | Where |
-|---|---|
-| Complete source code | This repository (see [Files](#files)) |
-| Installation and setup instructions | [Quick start](#quick-start) and [Configuration](#configuration-environment-variables) |
-| 2–3 minute demonstration video | [Demo video](#demo-video) |
-| Architecture diagram (STT → LLM → TTS) | [Architecture](#architecture) |
-| Models selected, hardware requirements, observed latency | [Models selected](#models-selected), [Hardware requirements](#hardware-requirements), [Observed response latency](#observed-response-latency) |
-
 ## Architecture
 
 ![One call's path: browser mic → turn detection (Silero VAD + Smart Turn, CPU) → speech-to-text (Whisper v3-turbo, GPU) → LLM (Llama 3.2 3B via Ollama, GPU) → text-to-speech (Kokoro 82M, CPU) → browser speaker](docs/architecture.png)
