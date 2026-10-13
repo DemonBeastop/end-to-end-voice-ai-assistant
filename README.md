@@ -21,7 +21,7 @@ A voice assistant that runs entirely on a laptop with open-weight models. You ta
 
 It also has a **Scenario** dropdown that turns it into a dental clinic receptionist or an event company's follow-up caller (see [Scenarios](#scenarios)).
 
-No hosted AI APIs are used. After the first model download, everything runs offline. Why Pipecat, and why each model runs where it does (with measurements): [docs/adr/0001-voice-pipeline.md](docs/adr/0001-voice-pipeline.md).
+No hosted AI APIs are used. After the first model download, everything runs offline.
 
 ## Deliverables
 
@@ -64,8 +64,6 @@ When a turn's language differs from the previous one, `LangWhisperSTT` pushes tw
 | Text-to-speech | Kokoro v1.0 via kokoro-onnx (voices `af_heart`, `hf_alpha`) | 82M params, ONNX fp32, 338 MB | RAM | CPU |
 | Voice detection | Silero VAD | small ONNX model | RAM | CPU |
 | End of turn | Smart Turn v3 | small ONNX model | RAM | CPU |
-
-Why each was chosen, and what was rejected: [docs/adr/0001-voice-pipeline.md](docs/adr/0001-voice-pipeline.md).
 
 ## Hardware requirements
 
@@ -147,23 +145,6 @@ The first measured run, before these fixes, took 2.0–5.6 s per turn, and some 
 3. **Single Whisper encoder pass** for both language detection and decoding: 0.82 s → 0.42 s.
 4. **LLM 100% on the GPU** (load order), q8 KV cache, flash attention, kept resident.
 
-## Tests
-
-```bash
-uv run python test_voice.py     # or: uv run --with pytest pytest test_voice.py
-```
-
-Covers language picking (Urdu folded into Hindi), LLM-prompt and voice switching only when the language changes, merging the segments of one turn, the TTS chunking rules (including the shorter first chunk for Hindi), and building every scenario's prompt in both languages. These checks don't need a GPU.
-
-**Manual demo script** (about 4 minutes):
-1. Say "Hi, my name is ___ and I live in ___."
-2. Two turns later, ask "What's my name and where do I live?" It should remember.
-3. Ask something in Hindi ("मुझे सुबह जल्दी उठने के लिए कोई सलाह दो।"). The badge shows **HI** and it answers in Hindi with a Hindi voice.
-4. Ask for a long story, then interrupt with "Stop, what's two plus two?" It should stop at once and answer.
-5. Read the ⏱ line under each reply for per-turn latency.
-6. Disconnect, pick **Dental clinic receptionist**, and book a cleaning: choose a slot, give a name and phone number, and listen for the read-back.
-7. Disconnect, pick **Event follow-up call** with Language set to **हिन्दी**, and answer Riya's questions in Hindi.
-
 ## Limitations
 
 - **The 3B LLM is the weak link.** Facts and reasoning are basic, and its Hindi is understandable but simple. On a GPU with 8 GB or more, set `LLM_MODEL` to a 7–8B model.
@@ -180,7 +161,5 @@ Covers language picking (Urdu folded into Hindi), LLM-prompt and voice switching
 | `lang.py` | `LangWhisperSTT`: single-pass Whisper, en/hi routing, segment merging |
 | `roles.py` | Scenarios: system prompts, opening lines and open slots |
 | `index.html` | Web UI: Pipecat JS client from a CDN, no build step |
-| `test_voice.py` | Checks for the custom logic |
-| `docs/adr/0001-voice-pipeline.md` | Architecture decision record with measurements |
 | `docs/architecture.png` | Architecture diagram: STT → LLM → TTS, with where each model runs |
 | `docs/demo.mp4` | The demonstration video |
