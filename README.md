@@ -4,7 +4,7 @@ A voice assistant that runs entirely on a laptop with open-weight models. You ta
 
 **Median latency is about 1.7 s** from the moment you stop speaking to the first audio of the reply, measured on an RTX 3050 Laptop GPU with 4 GB of VRAM.
 
-**▶ Demo video:** [docs/demo.mp4](docs/demo.mp4) (3:17, recorded live on that laptop: memory, interruptions, the dental receptionist scenario)
+**▶ Demo video:** [docs/demo.mp4](docs/demo.mp4) (3:17: an architecture walkthrough, then a live conversation recorded on that laptop)
 
 | Requirement | How it's met |
 |---|---|
