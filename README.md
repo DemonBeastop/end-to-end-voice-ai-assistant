@@ -65,7 +65,7 @@ When a turn's language differs from the previous one, `LangWhisperSTT` pushes tw
 | Voice detection | Silero VAD | small ONNX model | RAM | CPU |
 | End of turn | Smart Turn v3 | small ONNX model | RAM | CPU |
 
-Why each was chosen, and what was rejected: [docs/tech-stack.md](docs/tech-stack.md).
+Why each was chosen, and what was rejected: [docs/adr/0001-voice-pipeline.md](docs/adr/0001-voice-pipeline.md).
 
 ## Hardware requirements
 
@@ -182,7 +182,5 @@ Covers language picking (Urdu folded into Hindi), LLM-prompt and voice switching
 | `index.html` | Web UI: Pipecat JS client from a CDN, no build step |
 | `test_voice.py` | Checks for the custom logic |
 | `docs/adr/0001-voice-pipeline.md` | Architecture decision record with measurements |
-| `docs/tech-stack.md` | Full explanation of the stack: diagram, models, hardware, latency, how a turn works, alternatives |
-| `docs/tuning-log.md` | Every problem hit while fitting the models on a 4 GB GPU, with the fix and the measured result |
 | `docs/architecture.png` | Architecture diagram: STT → LLM → TTS, with where each model runs |
 | `docs/demo.mp4` | The demonstration video |

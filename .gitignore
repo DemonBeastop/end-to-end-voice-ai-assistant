@@ -3,3 +3,5 @@ __pycache__/
 .pytest_cache/
 # raw screen recordings; the edited demo is docs/demo.mp4
 /*.mp4
+docs/tech-stack.md
+docs/tuning-log.md
