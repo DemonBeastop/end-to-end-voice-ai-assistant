@@ -1,10 +1,18 @@
+
+https://github.com/user-attachments/assets/50fd2a06-996e-4838-8d3b-681f3c53c014
 # Local Voice Assistant (English + हिन्दी)
 
 A voice assistant that runs entirely on a laptop with open-weight models. You talk in the browser and it answers out loud. It keeps context across turns, lets you interrupt it mid-sentence, and switches between English and Hindi on its own each turn.
 
 **Median latency is about 1.7 s** from the moment you stop speaking to the first audio of the reply, measured on an RTX 3050 Laptop GPU with 4 GB of VRAM.
 
-**▶ Demo video:** [docs/demo.mp4](docs/demo.mp4) (3:17: an architecture walkthrough, then a live conversation recorded on that laptop)
+**▶ Demo video:** [docs/demo.mp4](docs/demo.mp4)
+
+
+https://github.com/user-attachments/assets/62bbffdd-dfa4-4d48-bf76-f164523d8014
+
+
+(3:17: an architecture walkthrough, then a live conversation recorded on that laptop)
 
 | Requirement | How it's met |
 |---|---|
