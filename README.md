@@ -4,13 +4,7 @@ A voice assistant that runs entirely on a laptop with open-weight models. You ta
 
 **Median latency is about 1.7 s** from the moment you stop speaking to the first audio of the reply, measured on an RTX 3050 Laptop GPU with 4 GB of VRAM.
 
-**▶ Demo video:** [docs/demo.mp4](docs/demo.mp4)
-
-
-https://github.com/user-attachments/assets/62bbffdd-dfa4-4d48-bf76-f164523d8014
-
-
-(3:17: an architecture walkthrough, then a live conversation recorded on that laptop)
+[![▶ Watch the demo video (3:17)](https://img.shields.io/badge/%E2%96%B6%20Watch%20the%20demo-3%3A17-2f6fed?style=for-the-badge)](#demo-video)
 
 | Requirement | How it's met |
 |---|---|
@@ -35,7 +29,7 @@ No hosted AI APIs are used. After the first model download, everything runs offl
 |---|---|
 | Complete source code | This repository (see [Files](#files)) |
 | Installation and setup instructions | [Quick start](#quick-start) and [Configuration](#configuration-environment-variables) |
-| 2–3 minute demonstration video | [docs/demo.mp4](docs/demo.mp4) |
+| 2–3 minute demonstration video | [Demo video](#demo-video) |
 | Architecture diagram (STT → LLM → TTS) | [Architecture](#architecture) |
 | Models selected, hardware requirements, observed latency | [Models selected](#models-selected), [Hardware requirements](#hardware-requirements), [Observed response latency](#observed-response-latency) |
 
@@ -94,6 +88,14 @@ Pick a scenario in the dropdown before clicking **Connect**. Each call is one sc
 The businesses, prices and doctors are made up, and the open slots are generated from today's date. Nothing is stored: a "booking" is the assistant confirming it out loud. Each scenario is a step-by-step system prompt plus an opening line in English and Hindi, all in [roles.py](roles.py). The LLM runs at temperature 0.3; at Ollama's default of 0.8, the 3B model skipped steps and its Hindi drifted into nonsense.
 
 To add a scenario, add an entry to `ROLES` in `roles.py` and an `<option>` to the Scenario dropdown in `index.html`.
+
+## Demo video
+
+An architecture walkthrough, then a live conversation, recorded on the RTX 3050 laptop (3:17).
+
+https://github.com/user-attachments/assets/62bbffdd-dfa4-4d48-bf76-f164523d8014
+
+The same video is in the repo as [docs/demo.mp4](docs/demo.mp4).
 
 ## Quick start
 
