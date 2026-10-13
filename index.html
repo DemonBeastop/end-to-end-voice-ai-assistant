@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice Assistant</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --bg:#f6f5f2; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#e4e2dd; --user:#e8f0ff; --bot:#f1efe9; --accent:#2f6fed; --ok:#1f9d55; --warn:#d97706; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141416; --card:#1c1c1f; --ink:#ececee; --muted:#9a9aa1; --line:#2c2c31; --user:#1f2a40; --bot:#26262a; --accent:#6d9bff; } }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 system-ui, -apple-system, "Segoe UI", "Noto Sans Devanagari", sans-serif; }
+  main { max-width:720px; margin:0 auto; padding:24px 16px; display:flex; flex-direction:column; gap:16px; min-height:100dvh; }
+  header { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+  h1 { font-size:20px; margin:0; flex-basis:100%; }
+  #connect { margin-left:auto; }
+  button, select { font:inherit; border:1px solid var(--line); border-radius:10px; padding:8px 14px; background:var(--card); color:var(--ink); cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button:focus-visible, select:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .bar { display:flex; gap:12px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 14px; }
+  #status { font-weight:600; }
+  #status::before { content:""; display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:8px; background:var(--muted); }
+  #status[data-s="listening"]::before { background:var(--ok); }
+  #status[data-s="hearing"]::before, #status[data-s="thinking"]::before { background:var(--warn); }
+  #status[data-s="speaking"]::before { background:var(--accent); }
+  #meter { flex:1; height:6px; border-radius:3px; background:var(--line); overflow:hidden; }
+  #meter > div { height:100%; width:0; background:var(--ok); transition:width 80ms; }
+  #log { flex:1; display:flex; flex-direction:column; gap:10px; overflow-y:auto; }
+  .msg { max-width:85%; padding:10px 14px; border-radius:14px; }
+  .user { align-self:flex-end; background:var(--user); }
+  .bot { align-self:flex-start; background:var(--bot); }
+  .badge { font-size:11px; font-weight:700; letter-spacing:.04em; padding:1px 6px; border-radius:6px; border:1px solid currentColor; color:var(--muted); margin-left:8px; }
+  .lat { display:block; font-size:12px; color:var(--muted); margin-top:4px; font-variant-numeric:tabular-nums; }
+  .hint { color:var(--muted); font-size:14px; text-align:center; }
+  #scenario { margin:0; color:var(--muted); font-size:14px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Voice Assistant</h1>
+    <label>Scenario
+      <select id="role" aria-label="Scenario">
+        <option value="assistant">General assistant</option>
+        <option value="dentist">Dental clinic receptionist</option>
+        <option value="events">Event follow-up call</option>
+      </select>
+    </label>
+    <label>Language
+      <select id="lang" aria-label="Language">
+        <option value="auto">Auto (EN/HI)</option>
+        <option value="en">English</option>
+        <option value="hi">हिन्दी</option>
+      </select>
+    </label>
+    <button id="connect" class="primary">Connect</button>
+  </header>
+  <p id="scenario"></p>
+  <div class="bar"><span id="status" data-s="idle" role="status">Idle</span><div id="meter" aria-hidden="true"><div></div></div></div>
+  <div id="log" aria-live="polite"><p class="hint">Press Connect and start talking. Headphones help barge-in work cleanly.</p></div>
+</main>
+<script type="module">
+import { PipecatClient, RTVIEvent } from "https://cdn.jsdelivr.net/npm/@pipecat-ai/client-js@1.13.1/+esm";
+import { SmallWebRTCTransport } from "https://cdn.jsdelivr.net/npm/@pipecat-ai/small-webrtc-transport@1.10.8/+esm";
+
+const $ = (id) => document.getElementById(id);
+const log = $("log"), statusEl = $("status"), btn = $("connect"), langSel = $("lang"), roleSel = $("role"), meter = $("meter").firstChild;
+const audio = Object.assign(document.createElement("audio"), { autoplay: true });
+document.body.append(audio);
+
+let client = null, userMsg = null, botMsg = null, ttfb = {};
+
+// The scenario is fixed for a call (it sets the bot's persona and greeting); change it between calls.
+const HINTS = {
+  assistant: "Ask anything, in English or Hindi.",
+  dentist: "You're calling Bright Smile Dental Clinic. Try: \u201cI'd like to book a teeth cleaning this week.\u201d",
+  events: "Riya from Stellar Events is returning your call. Try: \u201cYes, I'm planning my sister's wedding in December.\u201d",
+};
+const showHint = () => { $("scenario").textContent = HINTS[roleSel.value]; };
+roleSel.onchange = showHint;
+showHint();
+
+const setStatus = (s, label) => { statusEl.dataset.s = s; statusEl.textContent = label; };
+const add = (cls) => {
+  const el = document.createElement("div");
+  el.className = `msg ${cls}`;
+  el.innerHTML = '<span class="t"></span><span class="badge" hidden></span><span class="lat" hidden></span>';
+  log.append(el);
+  return el;
+};
+const set = (el, sel, text) => { const s = el.querySelector(sel); s.textContent = text; s.hidden = false; };
+const append = (el, text) => {
+  const t = el.querySelector(".t");
+  t.textContent = t.textContent ? `${t.textContent} ${text}` : text;
+  log.scrollTop = log.scrollHeight;
+};
+const isHindi = (t) => /[ऀ-ॿ]/.test(t);
+
+function newClient() {
+  return new PipecatClient({
+    transport: new SmallWebRTCTransport(),
+    enableMic: true,
+    enableCam: false,
+    callbacks: {
+      onConnected: () => { setStatus("listening", "Listening"); btn.textContent = "Disconnect"; btn.disabled = false; },
+      onDisconnected: () => { setStatus("idle", "Idle"); btn.textContent = "Connect"; btn.disabled = roleSel.disabled = false; meter.style.width = 0; client = null; },
+      onBotReady: () => sendLang(),
+      onUserStartedSpeaking: () => setStatus("hearing", "Hearing you…"),
+      onUserStoppedSpeaking: () => setStatus("thinking", "Thinking…"),
+      onBotStartedSpeaking: () => { setStatus("speaking", "Speaking"); userMsg = null; botMsg ??= add("bot"); },
+      onBotStoppedSpeaking: () => setStatus("listening", "Listening"),
+      onLocalAudioLevel: (level) => { meter.style.width = `${Math.min(100, level * 300)}%`; },
+      onUserTranscript: (d) => {
+        if (!d.final) return;
+        // VAD can split one turn into several transcripts; keep them in one bubble.
+        userMsg ??= add("user");
+        append(userMsg, d.text);
+        set(userMsg, ".badge", isHindi(d.text) ? "HI" : "EN");
+        botMsg = null; // next bot reply starts a new bubble
+      },
+      onBotOutput: (d) => {
+        // Each sentence arrives as "new" (queued) then "completed" (spoken); show only spoken text,
+        // so an interrupted reply shows what the user actually heard.
+        if (d.aggregated_by !== "sentence" || d.spoken_status !== "completed") return;
+        botMsg ??= add("bot");
+        append(botMsg, d.text);
+      },
+      onMetrics: (m) => {
+        for (const { processor, value } of m.ttfb ?? []) {
+          const stage = ["STT", "LLM", "TTS"].find((s) => processor.includes(s));
+          if (stage) ttfb[stage] = value;
+        }
+      },
+      onServerMessage: (data) => {
+        if (data?.latency == null) return;
+        const parts = Object.entries(ttfb).map(([k, v]) => ` · ${k} ${v.toFixed(2)}s`).join("");
+        botMsg ??= add("bot"); // may arrive just before bot-started-speaking
+        set(botMsg, ".lat", `⏱ ${data.latency.toFixed(2)}s voice-to-voice${parts}`);
+        ttfb = {};
+      },
+      onError: (e) => append(add("bot"), `Error: ${e?.data?.error ?? e?.data?.message ?? JSON.stringify(e)}`),
+    },
+  });
+}
+
+function sendLang() { client?.sendClientMessage("set-language", langSel.value); }
+langSel.onchange = sendLang;
+
+btn.onclick = async () => {
+  if (client) return client.disconnect();
+  btn.disabled = roleSel.disabled = true;
+  setStatus("thinking", "Connecting…");
+  log.replaceChildren(); // each call starts a fresh conversation
+  userMsg = botMsg = null;
+  client = newClient();
+  client.on(RTVIEvent.TrackStarted, (track, participant) => {
+    if (!participant?.local && track.kind === "audio") audio.srcObject = new MediaStream([track]);
+  });
+  try {
+    await client.connect({
+      webrtcRequestParams: { endpoint: "/api/offer", requestData: { role: roleSel.value, language: langSel.value } },
+    });
+  } catch (e) {
+    setStatus("idle", `Failed: ${e.message ?? e}`);
+    btn.textContent = "Connect"; btn.disabled = roleSel.disabled = false; client = null;
+  }
+};
+</script>
+</body>
+</html>
